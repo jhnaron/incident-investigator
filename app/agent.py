@@ -24,6 +24,9 @@ Investigation rules:
 - Do not fetch more than 10 files per investigation
 - Stop when you have enough context to explain the root cause
 - Say "likely" when uncertain
+- Before each tool call, write one short sentence explaining what you are about to do and why.
+  Example: "The stack trace points to ingest.py line 18 — reading that file now."
+  Keep it concise. This is visible to the user.
 
 When you have finished investigating and are ready to write the final report, you MUST:
 - Output ONLY the structured report below — no preamble, no "based on my analysis", no thinking out loud
@@ -55,11 +58,11 @@ def run_investigation(
     repo_full_name: str,
     stack_trace: str,
     token: str,
-    on_tool_call=None
+    on_tool_call=None  # callback(type, text) where type is "reasoning" or "tool"
 ) -> str:
     """
     Run the agent loop. Returns the final investigation report.
-    on_tool_call(tool_name, file_path) is called each time the agent uses a tool.
+    on_tool_call(type, text) is called for each reasoning line and tool call.
     """
 
     tools = make_tools(token, repo_full_name)
@@ -89,11 +92,9 @@ def run_investigation(
         messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason == "end_turn":
-            # Model finished on its own — extract text
             for block in response.content:
                 if hasattr(block, "text"):
                     text = block.text.strip()
-                    # If it starts with a preamble, trigger a correction pass
                     if not text.startswith("## What Failed"):
                         return _force_structured_report(messages, tools)
                     return text
@@ -103,13 +104,18 @@ def run_investigation(
             tool_results = []
 
             for block in response.content:
+                # Capture reasoning text that appears before tool calls
+                if hasattr(block, "text") and block.text.strip():
+                    if on_tool_call:
+                        on_tool_call("reasoning", block.text.strip())
+
                 if block.type == "tool_use":
                     tool_name = block.name
                     tool_input = block.input
+                    label = tool_input.get("file_path", "") or tool_name
 
                     if on_tool_call:
-                        label = tool_input.get("file_path", "") or tool_name
-                        on_tool_call(tool_name, label)
+                        on_tool_call("tool", (tool_name, label))
 
                     result = execute_tool(tool_name, tool_input, token, repo_full_name)
 
@@ -122,15 +128,10 @@ def run_investigation(
             messages.append({"role": "user", "content": tool_results})
             hops += 1
 
-    # Hit max hops — force a report from what we have
     return _force_structured_report(messages, tools)
 
 
 def _force_structured_report(messages: list, tools: list) -> str:
-    """
-    Send a follow-up message that forces the model to output only
-    the structured report, no preamble.
-    """
     messages_with_trigger = messages + [
         {"role": "user", "content": REPORT_TRIGGER}
     ]

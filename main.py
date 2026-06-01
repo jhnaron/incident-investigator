@@ -53,49 +53,13 @@ CUSTOM_CSS = """
     padding: 3px 10px; text-decoration: none; transition: border-color 0.2s, color 0.2s;
 }
 .logout-btn:hover { border-color: #c8a96e; color: #c8a96e; }
-
-/* hero — inline with repo selector */
-.hero-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 0 0 0.75rem 0;
-}
-.hero-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
-}
 .hero-title { font-family: monospace; font-size: 20px; font-weight: 700; color: #e8dcc8; letter-spacing: 0.03em; line-height: 1.2; }
 .hero-sub { font-family: monospace; font-size: 12px; color: #8892a0; margin-top: 3px; }
-.hero-repo {
-    flex: 1;
-    min-width: 0;
-}
-.hero-user {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    flex-shrink: 0;
-    padding-top: 2px;
-}
-
-/* section headers — unified style */
 .section-header {
-    font-family: monospace;
-    font-size: 11px;
-    color: #c8a96e;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #2a3548;
+    font-family: monospace; font-size: 11px; color: #c8a96e;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #2a3548;
 }
-
-/* loading button */
 .btn-loading {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     width: 100%; background: #1a2410; border: 1px solid #3a5020; border-radius: 6px;
@@ -113,13 +77,12 @@ CUSTOM_CSS = """
     0%, 100% { opacity: 1; box-shadow: 0 0 6px #27ae60; }
     50% { opacity: 0.4; box-shadow: 0 0 2px #27ae60; }
 }
-
 [data-testid="stSpinner"] { display: none !important; }
 
 /* terminal */
 .terminal {
     background: #0d1117; border: 1px solid #2a3548; border-radius: 8px;
-    overflow: hidden; min-height: 340px; max-height: 480px;
+    overflow: hidden; min-height: 340px; max-height: 520px;
     display: flex; flex-direction: column;
 }
 .terminal-titlebar {
@@ -138,17 +101,28 @@ CUSTOM_CSS = """
 .terminal-body::-webkit-scrollbar { width: 4px; }
 .terminal-body::-webkit-scrollbar-track { background: #0d1117; }
 .terminal-body::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
-.terminal-prompt { font-family: monospace; font-size: 12px; color: #4a5a6e; margin-bottom: 8px; }
+.terminal-prompt { font-family: monospace; font-size: 12px; color: #4a5a6e; margin-bottom: 10px; }
 .terminal-prompt span { color: #c8a96e; }
+
+/* tool call line */
 .t-line { font-family: monospace; font-size: 12px; line-height: 1.9; display: flex; align-items: baseline; gap: 6px; }
 .t-arrow { color: #4a5a6e; }
 .t-action { color: #8892a0; }
 .t-file { color: #c8a96e; font-weight: 600; }
-.t-idle { color: #2a3548; font-style: italic; }
+
+/* reasoning line — italicised, dimmer, indented */
+.t-reasoning {
+    font-family: monospace; font-size: 11px; color: #5a6a7a;
+    font-style: italic; line-height: 1.7;
+    padding-left: 12px;
+    border-left: 2px solid #1e2a3a;
+    margin: 4px 0 6px 0;
+}
+
+.t-idle { color: #2a3548; font-style: italic; font-size: 12px; }
 .t-thinking { font-family: monospace; font-size: 11px; color: #c8a96e; margin-top: 8px; opacity: 0.6; }
 .t-done { color: #4a7a4a; font-style: italic; font-size: 11px; margin-top: 8px; }
 
-/* show report bar */
 .show-report-bar { margin-top: 1.5rem; display: flex; align-items: center; gap: 12px; }
 .show-report-pulse {
     width: 8px; height: 8px; border-radius: 50%;
@@ -181,8 +155,6 @@ CUSTOM_CSS = """
     color: #c8a96e !important; letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
 }
-
-/* buttons */
 [data-testid="stButton"] > button[kind="primary"]:not([disabled]) {
     background: #c8a96e !important; color: #111827 !important;
     border: none !important; font-family: monospace !important;
@@ -193,8 +165,7 @@ CUSTOM_CSS = """
 }
 [data-testid="stButton"] > button[kind="primary"]:not([disabled]):hover { background: #e8dcc8 !important; }
 [data-testid="stButton"] > button[kind="primary"][disabled] {
-    background: #1e2a3a !important; color: #3a4a5a !important;
-    width: 100% !important;
+    background: #1e2a3a !important; color: #3a4a5a !important; width: 100% !important;
 }
 [data-testid="stButton"] > button:not([kind="primary"]) { display: none !important; }
 [data-testid="stLinkButton"] a {
@@ -212,8 +183,6 @@ CUSTOM_CSS = """
 [data-testid="stDownloadButton"] > button:hover {
     border-color: #c8a96e !important; background: #2a3548 !important;
 }
-
-/* report */
 .report-header {
     font-family: monospace; font-size: 11px; color: #c8a96e;
     letter-spacing: 0.1em; text-transform: uppercase;
@@ -279,6 +248,7 @@ LOADING_BTN_HTML = """
 </div>
 """
 
+# steps is a list of dicts: {type: "reasoning"|"tool", content: str|(action,file)}
 def terminal_html(steps: list, status: str = "idle") -> str:
     dot_r = "terminal-dot terminal-dot-r" + (" active" if status == "running" else "")
     dot_y = "terminal-dot terminal-dot-y" + (" active" if status == "running" else "")
@@ -289,14 +259,20 @@ def terminal_html(steps: list, status: str = "idle") -> str:
         lines_html = '<div class="t-line"><span class="t-idle">// waiting for investigation...</span></div>'
     else:
         lines_html = ""
-        for action, file in steps:
-            lines_html += (
-                f'<div class="t-line">'
-                f'<span class="t-arrow">&gt;</span>'
-                f'<span class="t-action">{action}</span>'
-                f'<span class="t-file">{file}</span>'
-                f'</div>'
-            )
+        for step in steps:
+            if step["type"] == "reasoning":
+                # Escape any HTML in the reasoning text
+                text = step["content"].replace("<", "&lt;").replace(">", "&gt;")
+                lines_html += f'<div class="t-reasoning">{text}</div>'
+            elif step["type"] == "tool":
+                action, file = step["content"]
+                lines_html += (
+                    f'<div class="t-line">'
+                    f'<span class="t-arrow">&gt;</span>'
+                    f'<span class="t-action">{action}</span>'
+                    f'<span class="t-file">{file}</span>'
+                    f'</div>'
+                )
         if status == "running":
             lines_html += '<div class="t-thinking">&#9607; thinking...</div>'
         elif status == "done":
@@ -320,8 +296,6 @@ def terminal_html(steps: list, status: str = "idle") -> str:
 
 st.set_page_config(page_title="Incident Investigator", page_icon="🔍", layout="wide")
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-
-# scroll-to-report anchor — invisible, always rendered
 st.markdown('<div id="report-anchor"></div>', unsafe_allow_html=True)
 
 def show_login():
@@ -384,7 +358,6 @@ def show_app():
 
     repo_names = [r["full_name"] for r in st.session_state.repos]
 
-    # --- Hero row: icon+title LEFT, repo selector CENTRE-RIGHT, user TOP-RIGHT ---
     col_hero, col_repo, col_user = st.columns([3, 3, 2])
 
     with col_hero:
@@ -413,7 +386,6 @@ def show_app():
 
     st.divider()
 
-    # --- Two-column body: Stack Trace LEFT, Reasoning Trace RIGHT ---
     col_left, col_right = st.columns([1, 1], gap="large")
 
     with col_left:
@@ -463,7 +435,6 @@ def show_app():
                 st.session_state.show_report = True
                 st.rerun()
 
-    # --- Agent run ---
     if investigate and stack_trace and selected_repo:
         st.session_state.running = True
         st.session_state.report = None
@@ -471,11 +442,14 @@ def show_app():
         btn_slot.markdown(LOADING_BTN_HTML, unsafe_allow_html=True)
         steps = []
 
-        def on_tool_call(tool_name: str, label: str):
-            if tool_name == "fetch_file":
-                steps.append(("reading ", label))
-            elif tool_name == "list_repo_files":
-                steps.append(("listing ", "repository tree"))
+        def on_tool_call(event_type: str, content):
+            if event_type == "reasoning":
+                steps.append({"type": "reasoning", "content": content})
+            elif event_type == "tool":
+                tool_name, label = content
+                action = "reading " if tool_name == "fetch_file" else "listing "
+                file = label if tool_name == "fetch_file" else "repository tree"
+                steps.append({"type": "tool", "content": (action, file)})
             console.markdown(terminal_html(steps, status="running"), unsafe_allow_html=True)
 
         report = run_investigation(
@@ -491,12 +465,9 @@ def show_app():
         st.session_state.last_steps = steps
         st.rerun()
 
-    # --- Report section ---
     if st.session_state.report and st.session_state.show_report:
         st.divider()
-        # Anchor for scroll-to
         st.markdown('<div id="report-section"></div>', unsafe_allow_html=True)
-        # JS scroll — fires after render
         st.markdown(
             '<script>document.getElementById("report-section").scrollIntoView({behavior:"smooth"});</script>',
             unsafe_allow_html=True

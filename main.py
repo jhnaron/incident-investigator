@@ -7,7 +7,7 @@ load_dotenv()
 
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
-REDIRECT_URI = "http://localhost:8501"
+REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:8501")
 
 APP_ICON_SVG = """<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="32" height="32" rx="7" fill="#1a2335"/>

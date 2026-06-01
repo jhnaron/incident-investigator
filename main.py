@@ -28,6 +28,8 @@ CUSTOM_CSS = """
 [data-testid="stAppViewContainer"] > .main .block-container {
     padding-top: 0.5rem !important;
     padding-bottom: 2rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     max-width: 1100px;
     margin: 0 auto;
     position: relative;
@@ -55,6 +57,14 @@ CUSTOM_CSS = """
 .logout-btn:hover { border-color: #c8a96e; color: #c8a96e; }
 .hero-title { font-family: monospace; font-size: 20px; font-weight: 700; color: #e8dcc8; letter-spacing: 0.03em; line-height: 1.2; }
 .hero-sub { font-family: monospace; font-size: 12px; color: #8892a0; margin-top: 3px; }
+
+/* responsive hero subtitle */
+@media (max-width: 768px) {
+    .hero-title { font-size: 16px; }
+    .hero-sub { font-size: 11px; }
+    .fork-btn { display: none; }
+}
+
 .section-header {
     font-family: monospace; font-size: 11px; color: #c8a96e;
     letter-spacing: 0.1em; text-transform: uppercase;
@@ -82,8 +92,11 @@ CUSTOM_CSS = """
 /* terminal — fixed height, never expands */
 .terminal {
     background: #0d1117; border: 1px solid #2a3548; border-radius: 8px;
-    overflow: hidden; height: 420px;
+    overflow: hidden; height: 320px;
     display: flex; flex-direction: column;
+}
+@media (max-width: 768px) {
+    .terminal { height: 260px; }
 }
 .terminal-titlebar {
     background: #161b22; border-bottom: 1px solid #2a3548;
@@ -99,8 +112,8 @@ CUSTOM_CSS = """
 .terminal-dot-g.active { background: #27ae60; border-color: #2ecc71; }
 .terminal-label { font-family: monospace; font-size: 11px; color: #4a5a6e; margin-left: 4px; }
 .terminal-body {
-    padding: 1rem 1.25rem; overflow-y: auto;
-    flex: 1; height: 0; /* forces flex child to respect parent height */
+    padding: 1rem 1.25rem; overflow-y: scroll;
+    flex: 1; min-height: 0; /* key: lets flex child shrink below content size */
 }
 .terminal-body::-webkit-scrollbar { width: 4px; }
 .terminal-body::-webkit-scrollbar-track { background: #0d1117; }
@@ -275,9 +288,11 @@ def terminal_html(steps: list, status: str = "idle") -> str:
                     f'</div>'
                 )
         if status == "running":
-            lines_html += '<div class="t-thinking">&#9607; thinking...</div>'
+            lines_html += '<div class="t-thinking" id="t-bottom">&#9607; thinking...</div>'
         elif status == "done":
-            lines_html += '<div class="t-done">// investigation complete</div>'
+            lines_html += '<div class="t-done" id="t-bottom">// investigation complete</div>'
+        else:
+            lines_html += '<div id="t-bottom"></div>'
 
     repo = st.session_state.get('current_repo', '')
     return f"""
@@ -288,15 +303,15 @@ def terminal_html(steps: list, status: str = "idle") -> str:
             <div class="{dot_g}"></div>
             <span class="terminal-label">{label}</span>
         </div>
-        <div class="terminal-body" id="terminal-body">
+        <div class="terminal-body" id="t-body">
             <div class="terminal-prompt">$ investigate <span>{repo}</span></div>
             {lines_html}
         </div>
     </div>
     <script>
     (function() {{
-        var b = document.getElementById('terminal-body');
-        if (b) b.scrollTop = b.scrollHeight;
+        var body = document.getElementById('t-body');
+        if (body) body.scrollTop = body.scrollHeight;
     }})();
     </script>
     """
@@ -311,7 +326,7 @@ def show_login():
         <div style="display:flex;flex-direction:column;align-items:center;padding:3rem 0 1.5rem 0;">
             {APP_ICON_SVG}
             <div style="font-family:monospace;font-size:22px;font-weight:700;color:#e8dcc8;letter-spacing:0.04em;margin-top:12px;">Incident Investigator</div>
-            <div style="font-family:monospace;font-size:12px;color:#8892a0;margin-top:6px;">Locates the source of the error in your codebase and generates a report using Claude.</div>
+            <div style="font-family:monospace;font-size:12px;color:#8892a0;margin-top:6px;text-align:center;max-width:400px;">Locates the source of the error in your codebase and generates a report using Claude.</div>
         </div>
         """, unsafe_allow_html=True
     )
@@ -365,6 +380,7 @@ def show_app():
 
     repo_names = [r["full_name"] for r in st.session_state.repos]
 
+    # On mobile, stack vertically; on desktop, three columns
     col_hero, col_repo, col_user = st.columns([3, 3, 2])
 
     with col_hero:
@@ -399,7 +415,7 @@ def show_app():
         st.markdown('<div class="section-header">Stack Trace / Error</div>', unsafe_allow_html=True)
         stack_trace = st.text_area(
             "stack_trace_input",
-            height=320,
+            height=260,
             placeholder="Traceback (most recent call last):\n  File \"app/main.py\", line 42, in handler\n    result = process(data)\nAttributeError: 'NoneType' object has no attribute 'encode'",
             disabled=st.session_state.running,
             label_visibility="collapsed"

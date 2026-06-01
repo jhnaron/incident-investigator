@@ -79,15 +79,16 @@ CUSTOM_CSS = """
 }
 [data-testid="stSpinner"] { display: none !important; }
 
-/* terminal */
+/* terminal — fixed height, never expands */
 .terminal {
     background: #0d1117; border: 1px solid #2a3548; border-radius: 8px;
-    overflow: hidden; min-height: 340px; max-height: 520px;
+    overflow: hidden; height: 420px;
     display: flex; flex-direction: column;
 }
 .terminal-titlebar {
     background: #161b22; border-bottom: 1px solid #2a3548;
-    padding: 7px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    padding: 7px 12px; display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0; height: 32px;
 }
 .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
 .terminal-dot-r { background: #3a2020; border: 1px solid #5a2020; }
@@ -97,7 +98,10 @@ CUSTOM_CSS = """
 .terminal-dot-y.active { background: #c8a96e; border-color: #e8c888; }
 .terminal-dot-g.active { background: #27ae60; border-color: #2ecc71; }
 .terminal-label { font-family: monospace; font-size: 11px; color: #4a5a6e; margin-left: 4px; }
-.terminal-body { padding: 1rem 1.25rem; overflow-y: auto; flex: 1; }
+.terminal-body {
+    padding: 1rem 1.25rem; overflow-y: auto;
+    flex: 1; height: 0; /* forces flex child to respect parent height */
+}
 .terminal-body::-webkit-scrollbar { width: 4px; }
 .terminal-body::-webkit-scrollbar-track { background: #0d1117; }
 .terminal-body::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
@@ -110,12 +114,11 @@ CUSTOM_CSS = """
 .t-action { color: #8892a0; }
 .t-file { color: #c8a96e; font-weight: 600; }
 
-/* reasoning line — italicised, dimmer, indented */
+/* reasoning line */
 .t-reasoning {
     font-family: monospace; font-size: 11px; color: #5a6a7a;
     font-style: italic; line-height: 1.7;
-    padding-left: 12px;
-    border-left: 2px solid #1e2a3a;
+    padding-left: 12px; border-left: 2px solid #1e2a3a;
     margin: 4px 0 6px 0;
 }
 
@@ -248,7 +251,6 @@ LOADING_BTN_HTML = """
 </div>
 """
 
-# steps is a list of dicts: {type: "reasoning"|"tool", content: str|(action,file)}
 def terminal_html(steps: list, status: str = "idle") -> str:
     dot_r = "terminal-dot terminal-dot-r" + (" active" if status == "running" else "")
     dot_y = "terminal-dot terminal-dot-y" + (" active" if status == "running" else "")
@@ -261,7 +263,6 @@ def terminal_html(steps: list, status: str = "idle") -> str:
         lines_html = ""
         for step in steps:
             if step["type"] == "reasoning":
-                # Escape any HTML in the reasoning text
                 text = step["content"].replace("<", "&lt;").replace(">", "&gt;")
                 lines_html += f'<div class="t-reasoning">{text}</div>'
             elif step["type"] == "tool":
@@ -287,11 +288,17 @@ def terminal_html(steps: list, status: str = "idle") -> str:
             <div class="{dot_g}"></div>
             <span class="terminal-label">{label}</span>
         </div>
-        <div class="terminal-body">
+        <div class="terminal-body" id="terminal-body">
             <div class="terminal-prompt">$ investigate <span>{repo}</span></div>
             {lines_html}
         </div>
     </div>
+    <script>
+    (function() {{
+        var b = document.getElementById('terminal-body');
+        if (b) b.scrollTop = b.scrollHeight;
+    }})();
+    </script>
     """
 
 st.set_page_config(page_title="Incident Investigator", page_icon="🔍", layout="wide")

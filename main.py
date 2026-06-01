@@ -1,6 +1,7 @@
 import streamlit as st
 from dotenv import load_dotenv
 import os
+import re
 import requests
 
 load_dotenv()
@@ -57,14 +58,11 @@ CUSTOM_CSS = """
 .logout-btn:hover { border-color: #c8a96e; color: #c8a96e; }
 .hero-title { font-family: monospace; font-size: 20px; font-weight: 700; color: #e8dcc8; letter-spacing: 0.03em; line-height: 1.2; }
 .hero-sub { font-family: monospace; font-size: 12px; color: #8892a0; margin-top: 3px; }
-
-/* responsive hero subtitle */
 @media (max-width: 768px) {
     .hero-title { font-size: 16px; }
     .hero-sub { font-size: 11px; }
     .fork-btn { display: none; }
 }
-
 .section-header {
     font-family: monospace; font-size: 11px; color: #c8a96e;
     letter-spacing: 0.1em; text-transform: uppercase;
@@ -95,9 +93,7 @@ CUSTOM_CSS = """
     overflow: hidden; height: 320px;
     display: flex; flex-direction: column;
 }
-@media (max-width: 768px) {
-    .terminal { height: 260px; }
-}
+@media (max-width: 768px) { .terminal { height: 260px; } }
 .terminal-titlebar {
     background: #161b22; border-bottom: 1px solid #2a3548;
     padding: 7px 12px; display: flex; align-items: center; gap: 8px;
@@ -113,31 +109,42 @@ CUSTOM_CSS = """
 .terminal-label { font-family: monospace; font-size: 11px; color: #4a5a6e; margin-left: 4px; }
 .terminal-body {
     padding: 1rem 1.25rem; overflow-y: scroll;
-    flex: 1; min-height: 0; /* key: lets flex child shrink below content size */
+    flex: 1; min-height: 0;
 }
 .terminal-body::-webkit-scrollbar { width: 4px; }
 .terminal-body::-webkit-scrollbar-track { background: #0d1117; }
 .terminal-body::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
-.terminal-prompt { font-family: monospace; font-size: 12px; color: #4a5a6e; margin-bottom: 10px; }
+.terminal-prompt { font-family: 'Courier New', monospace; font-size: 12px; color: #4a5a6e; margin-bottom: 10px; }
 .terminal-prompt span { color: #c8a96e; }
-
-/* tool call line */
-.t-line { font-family: monospace; font-size: 12px; line-height: 1.9; display: flex; align-items: baseline; gap: 6px; }
-.t-arrow { color: #4a5a6e; }
-.t-action { color: #8892a0; }
-.t-file { color: #c8a96e; font-weight: 600; }
-
-/* reasoning line */
+/* all terminal text — lock font, size, weight, style */
+.t-line, .t-reasoning, .t-idle, .t-thinking, .t-done {
+    font-family: 'Courier New', monospace !important;
+    font-size: 12px !important;
+    font-weight: normal !important;
+    line-height: 1.7 !important;
+}
+.t-line { display: flex; align-items: baseline; gap: 6px; }
+.t-arrow { color: #4a5a6e; font-style: normal !important; }
+.t-action { color: #8892a0; font-style: normal !important; }
+.t-file { color: #c8a96e; font-weight: bold !important; font-style: normal !important; }
 .t-reasoning {
-    font-family: monospace; font-size: 11px; color: #5a6a7a;
-    font-style: italic; line-height: 1.7;
+    color: #5a6a7a; font-style: italic !important;
     padding-left: 12px; border-left: 2px solid #1e2a3a;
     margin: 4px 0 6px 0;
 }
-
-.t-idle { color: #2a3548; font-style: italic; font-size: 12px; }
-.t-thinking { font-family: monospace; font-size: 11px; color: #c8a96e; margin-top: 8px; opacity: 0.6; }
-.t-done { color: #4a7a4a; font-style: italic; font-size: 11px; margin-top: 8px; }
+/* reset any nested tags inside reasoning */
+.t-reasoning * {
+    font-family: 'Courier New', monospace !important;
+    font-size: 12px !important;
+    font-weight: normal !important;
+    color: #5a6a7a !important;
+    background: transparent !important;
+    padding: 0 !important; margin: 0 !important;
+    border: none !important;
+}
+.t-idle { color: #2a3548; font-style: italic !important; }
+.t-thinking { color: #c8a96e; margin-top: 8px; opacity: 0.6; }
+.t-done { color: #4a7a4a; font-style: italic !important; margin-top: 8px; }
 
 .show-report-bar { margin-top: 1.5rem; display: flex; align-items: center; gap: 12px; }
 .show-report-pulse {
@@ -148,7 +155,6 @@ CUSTOM_CSS = """
 .show-report-label { font-family: monospace; font-size: 12px; color: #8892a0; }
 .show-report-label span { color: #c8a96e; }
 
-/* inputs */
 [data-testid="stSelectbox"] > div > div {
     background: #1a2335 !important; border: 1px solid #2a3548 !important;
     color: #e8dcc8 !important; font-family: monospace !important;
@@ -264,6 +270,28 @@ LOADING_BTN_HTML = """
 </div>
 """
 
+def sanitize_reasoning(text: str) -> str:
+    """Strip markdown formatting from reasoning text so it renders as plain monospace."""
+    # Remove bold/italic markers
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+    # Remove backtick code spans — keep the content
+    text = re.sub(r'`(.+?)`', r'\1', text)
+    # Remove numbered list markers (1. 2. etc) — flatten to plain lines
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+    # Remove bullet markers
+    text = re.sub(r'^\s*[-*]\s+', '', text, flags=re.MULTILINE)
+    # Remove heading markers
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    # Collapse multiple newlines into single, HTML-escape
+    text = text.strip()
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    # Convert newlines to <br> so multi-line reasoning wraps correctly
+    text = text.replace('\n', '<br>')
+    return text
+
 def terminal_html(steps: list, status: str = "idle") -> str:
     dot_r = "terminal-dot terminal-dot-r" + (" active" if status == "running" else "")
     dot_y = "terminal-dot terminal-dot-y" + (" active" if status == "running" else "")
@@ -271,12 +299,12 @@ def terminal_html(steps: list, status: str = "idle") -> str:
     label = {"idle": "waiting...", "running": "investigating...", "done": "done"}.get(status, "")
 
     if not steps:
-        lines_html = '<div class="t-line"><span class="t-idle">// waiting for investigation...</span></div>'
+        lines_html = '<div class="t-idle">// waiting for investigation...</div>'
     else:
         lines_html = ""
         for step in steps:
             if step["type"] == "reasoning":
-                text = step["content"].replace("<", "&lt;").replace(">", "&gt;")
+                text = sanitize_reasoning(step["content"])
                 lines_html += f'<div class="t-reasoning">{text}</div>'
             elif step["type"] == "tool":
                 action, file = step["content"]
@@ -288,13 +316,30 @@ def terminal_html(steps: list, status: str = "idle") -> str:
                     f'</div>'
                 )
         if status == "running":
-            lines_html += '<div class="t-thinking" id="t-bottom">&#9607; thinking...</div>'
+            lines_html += '<div class="t-thinking">&#9607; thinking...</div>'
         elif status == "done":
-            lines_html += '<div class="t-done" id="t-bottom">// investigation complete</div>'
-        else:
-            lines_html += '<div id="t-bottom"></div>'
+            lines_html += '<div class="t-done">// investigation complete</div>'
 
     repo = st.session_state.get('current_repo', '')
+    # Auto-scroll: use window.parent to escape Streamlit's iframe
+    scroll_js = """
+    <script>
+    (function() {
+        var b = document.getElementById('t-body');
+        if (b) { b.scrollTop = b.scrollHeight; return; }
+        // fallback: try from parent frame
+        try {
+            var frames = window.parent.document.querySelectorAll('iframe');
+            for (var i = 0; i < frames.length; i++) {
+                try {
+                    var fb = frames[i].contentDocument.getElementById('t-body');
+                    if (fb) { fb.scrollTop = fb.scrollHeight; break; }
+                } catch(e) {}
+            }
+        } catch(e) {}
+    })();
+    </script>
+    """
     return f"""
     <div class="terminal">
         <div class="terminal-titlebar">
@@ -308,12 +353,7 @@ def terminal_html(steps: list, status: str = "idle") -> str:
             {lines_html}
         </div>
     </div>
-    <script>
-    (function() {{
-        var body = document.getElementById('t-body');
-        if (body) body.scrollTop = body.scrollHeight;
-    }})();
-    </script>
+    {scroll_js}
     """
 
 st.set_page_config(page_title="Incident Investigator", page_icon="🔍", layout="wide")
@@ -380,7 +420,6 @@ def show_app():
 
     repo_names = [r["full_name"] for r in st.session_state.repos]
 
-    # On mobile, stack vertically; on desktop, three columns
     col_hero, col_repo, col_user = st.columns([3, 3, 2])
 
     with col_hero:
